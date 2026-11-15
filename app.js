@@ -1,152 +1,23 @@
-
-const areas = {
-  "Magdalenas": {E: [1, 21]},
-  "Coyasan": {A: [1, 5], H: [2, 32]},
-  "Helados (M0)": Object.fromEntries(
-    [..."GFEDCBA"].map(p => [p, [1, 50]])
-  ),
-  "Tartas (M2)": {O: [1, 70], P: [1, 70]}
-};
-
-const colores = [
-  ["Blanco", "#ffffff", "#111111"],
-  ["Amarillo", "#facc15", "#111111"],
-  ["Azul", "#2563eb", "#ffffff"],
-  ["Verde", "#16a34a", "#ffffff"],
-  ["Rojo", "#dc2626", "#ffffff"]
-];
-
-const $ = id => document.getElementById(id);
-let codes = {};
-
-try {
-  codes = JSON.parse(
-    localStorage.getItem("almacen-colores-v1") || "{}"
-  );
-} catch(e) {}
-
-$("area").innerHTML = Object.keys(areas)
-  .map(a => `<option>${a}</option>`).join("");
-
-function updatePasillos() {
-  $("pasillo").innerHTML = Object.keys(
-    areas[$("area").value]
-  ).map(p => `<option>${p}</option>`).join("");
-  $("resultado").innerHTML = "";
-  loadCodes();
-}
-
-$("area").addEventListener("change", updatePasillos);
-
-function ubicacion() {
-  const a = $("area").value;
-  const p = $("pasillo").value;
-  const s = $("numero").value.trim();
-  const n = Number(s);
-  const [min, max] = areas[a][p];
-  const valid = s !== "" && Number.isInteger(n)
-    && n >= min && n <= max
-    && !(a === "Coyasan" && p === "H" && n % 2);
-
-  return {a, p, n, valid};
-}
-
-function render() {
-  const {a, p, n, valid} = ubicacion();
-  if (!valid) {
-    $("resultado").innerHTML =
-      '<p class="error">Ubicación no válida.</p>';
-    return;
-  }
-
-  const v = codes[`${a}|${p}|${n}`] || {};
-  $("resultado").innerHTML = `
-    <h2 class="ok">✓ ${a} · ${p}-${n}</h2>
-    <p class="muted">Códigos de colores:</p>
-    <div class="colors">
-      ${colores.map(([name,bg,fg]) => `
-        <div class="color"
-          style="background:${bg};color:${fg}">
-          ${name}<span>${v[name] || "--"}</span>
-        </div>
-      `).join("")}
-    </div>
-    <p class="muted">-- = pendiente de configurar</p>
-  `;
-}
-
-$("buscar").addEventListener("click", render);
-$("numero").addEventListener("keydown", e => {
-  if (e.key === "Enter") render();
-});
-
-$("config").innerHTML = colores.map(([name]) => `
-  <label for="c${name}">${name}</label>
-  <input id="c${name}" maxlength="2"
-    inputmode="numeric" placeholder="Dos dígitos">
-`).join("");
-
-function loadCodes() {
-  const {a,p,n} = ubicacion();
-  const v = codes[`${a}|${p}|${n}`] || {};
-  for (const [name] of colores) {
-    $("c" + name).value = v[name] || "";
-  }
-}
-
-$("guardar").addEventListener("click", () => {
-  const {a,p,n,valid} = ubicacion();
-  if (!valid) {
-    $("guardado").textContent =
-      "Primero selecciona una ubicación válida.";
-    return;
-  }
-
-  const v = {};
-  for (const [name] of colores) {
-    const value = $("c" + name).value.trim();
-    if (value && !/^\d{2}$/.test(value)) {
-      $("guardado").textContent =
-        `${name}: introduce exactamente dos dígitos.`;
-      return;
-    }
-    if (value) v[name] = value;
-  }
-
-  codes[`${a}|${p}|${n}`] = v;
-  try {
-    localStorage.setItem(
-      "almacen-colores-v1", JSON.stringify(codes)
-    );
-    $("guardado").textContent = "Códigos guardados.";
-  } catch(e) {
-    $("guardado").textContent =
-      "No se pudieron guardar los códigos.";
-  }
-  render();
-});
-
-for (const id of ["area","pasillo","numero"]) {
-  $(id).addEventListener("change", loadCodes);
-}
-$("numero").addEventListener("input", loadCodes);
-
-$("estructura").innerHTML = Object.entries(areas)
-  .map(([a,ps]) => `
-    <h3>${a}</h3>
-    <p>${Object.entries(ps).map(([p,r]) =>
-      `Pasillo ${p}: ${r[0]}–${r[1]}${
-        a === "Coyasan" && p === "H"
-          ? " (solo pares)" : ""
-      }`
-    ).join("<br>")}</p>
-  `).join("");
-
+'use strict';
+const areas={Magdalenas:{E:[1,21]},Coyasan:{A:[1,5],H:[2,32]},'Helados (M0)':Object.fromEntries([...'GFEDCBA'].map(p=>[p,[1,50]])),'Tartas (M2)':{O:[1,70],P:[1,70]}};
+const colores=[['Blanco','#ffffff','#111'],['Amarillo','#facc15','#111'],['Azul','#2563eb','#fff'],['Verde','#16a34a','#fff'],['Rojo','#dc2626','#fff']];
+const $=id=>document.getElementById(id);const KEY='stef-ubicaciones-v11';const OLD='almacen-colores-v1';
+let data={};
+try {const current=localStorage.getItem(KEY);if(current){data=JSON.parse(current)}else{const old=JSON.parse(localStorage.getItem(OLD)||'{}');for(const [key,value] of Object.entries(old)){data[key]={colores:value,productoCodigo:'',productoNombre:''}}}}catch(e){data={}}
+function persist(){localStorage.setItem(KEY,JSON.stringify(data))}
+function escapeHtml(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('area').innerHTML=Object.keys(areas).map(a=>`<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join('');
+$('config').innerHTML=colores.map(([name,bg])=>`<div class="code-row"><div class="swatch" style="background:${bg}"></div><label for="c${name}">${name}</label><input id="c${name}" inputmode="numeric" maxlength="2" placeholder="--" aria-label="Código ${name}"></div>`).join('');
+function selected(){const a=$('area').value,p=$('pasillo').value,s=$('numero').value.trim(),n=Number(s),range=areas[a]?.[p];const valid=!!range&&s!==''&&/^\d+$/.test(s)&&n>=range[0]&&n<=range[1]&&!(a==='Coyasan'&&p==='H'&&n%2);return {a,p,n,valid,key:`${a}|${p}|${n}`}}
+function load(){const {key,valid}=selected();const item=valid?data[key]||{}:{};for(const [name] of colores){$('c'+name).value=item.colores?.[name]||''}$('productoCodigo').value=item.productoCodigo||'';$('productoNombre').value=item.productoNombre||'';$('guardado').textContent=''}
+function updatePasillos(){const ps=Object.keys(areas[$('area').value]);$('pasillo').innerHTML=ps.map(p=>`<option value="${p}">${p}</option>`).join('');$('resultado').innerHTML='';load()}
+function render(){const {a,p,n,valid,key}=selected();if(!valid){$('resultado').innerHTML='<p class="error">Ubicación no válida. Revisa el área, pasillo y número.</p>';return}const item=data[key]||{};const cs=item.colores||{};$('resultado').innerHTML=`<h2 class="ok">✓ ${escapeHtml(a)} · ${escapeHtml(p)}-${n}</h2><div class="colors">${colores.map(([name,bg,fg])=>`<div class="color" style="background:${bg};color:${fg}">${name}<span>${escapeHtml(cs[name]||'--')}</span></div>`).join('')}</div><p class="muted">-- = código pendiente</p><hr><h3>Producto</h3><p><strong>Código:</strong> ${escapeHtml(item.productoCodigo||'Pendiente')}</p><p><strong>Nombre:</strong> ${escapeHtml(item.productoNombre||'Pendiente')}</p><button class="secondary" id="editarDesdeResultado">✏️ Modificar esta ubicación</button>`;$('editarDesdeResultado').addEventListener('click',()=>{$('editor').open=true;load();$('editor').scrollIntoView({behavior:'smooth',block:'start'})})}
+$('area').addEventListener('change',updatePasillos);$('pasillo').addEventListener('change',()=>{load();$('resultado').innerHTML=''});$('numero').addEventListener('input',()=>{load();$('resultado').innerHTML=''});$('numero').addEventListener('keydown',e=>{if(e.key==='Enter')render()});$('buscar').addEventListener('click',render);
+$('guardar').addEventListener('click',()=>{const {key,valid}=selected();if(!valid){$('guardado').textContent='Selecciona primero una ubicación válida.';return}const cs={};for(const [name] of colores){const v=$('c'+name).value.trim();if(v&&!/^\d{2}$/.test(v)){$('guardado').textContent=`${name}: escribe exactamente dos dígitos.`;return}if(v)cs[name]=v}const item={colores:cs,productoCodigo:$('productoCodigo').value.trim(),productoNombre:$('productoNombre').value.trim()};try{data[key]=item;persist();$('guardado').textContent='✓ Datos guardados en este móvil.';render()}catch(e){$('guardado').textContent='No se pudo guardar. Revisa el almacenamiento del navegador.'}});
+$('cancelar').addEventListener('click',load);
+$('estructura').innerHTML=Object.entries(areas).map(([a,ps])=>`<h3>${escapeHtml(a)}</h3><p>${Object.entries(ps).map(([p,r])=>`Pasillo ${p}: ${r[0]}–${r[1]}${a==='Coyasan'&&p==='H'?' (solo pares)':''}`).join('<br>')}</p>`).join('');
+$('exportar').addEventListener('click',()=>{try{const blob=new Blob([JSON.stringify({version:1,fecha:new Date().toISOString(),ubicaciones:data},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='stef-copia-ubicaciones.json';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);$('backupEstado').textContent='Copia generada. Guárdala en un lugar seguro.'}catch(e){$('backupEstado').textContent='No se pudo exportar la copia.'}});
+function validBackup(obj){if(!obj||obj.version!==1||!obj.ubicaciones||typeof obj.ubicaciones!=='object'||Array.isArray(obj.ubicaciones))return false;for(const [key,item] of Object.entries(obj.ubicaciones)){const [a,p,s]=key.split('|');const n=Number(s),range=areas[a]?.[p];if(!range||!Number.isInteger(n)||n<range[0]||n>range[1]||(a==='Coyasan'&&p==='H'&&n%2)||!item||typeof item!=='object'||typeof item.productoCodigo!=='string'||typeof item.productoNombre!=='string'||!item.colores||typeof item.colores!=='object')return false;for(const [name,value] of Object.entries(item.colores)){if(!colores.some(c=>c[0]===name)||typeof value!=='string'||!/^[0-9]{2}$/.test(value))return false}}return true}
+$('importar').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>2e6)throw Error('Archivo demasiado grande');const incoming=JSON.parse(await file.text());if(!validBackup(incoming))throw Error('Formato de copia no válido');if(!confirm('¿Reemplazar todos los datos guardados en este móvil por los de la copia?'))return;localStorage.setItem(KEY,JSON.stringify(incoming.ubicaciones));data=incoming.ubicaciones;load();render();$('backupEstado').textContent='✓ Copia restaurada correctamente.'}catch(err){$('backupEstado').textContent='No se pudo importar: '+err.message}finally{e.target.value=''}});
 updatePasillos();
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js")
-      .catch(() => {});
-  });
-}
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
